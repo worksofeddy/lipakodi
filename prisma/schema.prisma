@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  LANDLORD
+  TENANT
+  ADMIN
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  CONDO
+}
+
+enum UnitStatus {
+  VACANT
+  OCCUPIED
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum MpesaEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum InvoiceItemType {
+  RENT
+  WATER
+  ELECTRICITY
+  SERVICE_CHARGE
+  GARBAGE
+  PARKING
+  LATE_FEE
+  OTHER
+}
+
+enum ReconciliationStatus {
+  PENDING
+  MATCHED
+  UNMATCHED
+  MANUAL
+}
+
+enum NotificationType {
+  PAYMENT_RECEIVED
+  INVOICE_SENT
+  PAYMENT_OVERDUE
+  SYSTEM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(TENANT)
+  phoneNumber   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  properties    Property[]
+  tenant        Tenant?
+  notifications Notification[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Property {
+  id         String       @id @default(cuid())
+  name       String
+  address    String
+  city       String
+  type       PropertyType @default(APARTMENT)
+  units      Unit[]
+  landlordId String
+  landlord   User         @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  mpesaConfig MpesaConfig?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Unit {
+  id            String     @id @default(cuid())
+  unitNumber    String
+  accountNumber String?    @unique
+  bedrooms      Int        @default(1)
+  bathrooms     Int        @default(1)
+  rent          Float
+  status        UnitStatus @default(VACANT)
+  propertyId    String
+  property      Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant        Tenant?
+  maintenanceRequests MaintenanceRequest[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitId      String       @unique
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  leaseStart  DateTime
+  leaseEnd    DateTime
+  rentAmount  Float
+  phoneNumber String?
+  status      TenantStatus @default(ACTIVE)
+  payments    Payment[]
+  invoices    Invoice[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Payment {
+  id                    String               @id @default(cuid())
+  tenantId              String
+  tenant                Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount                Float
+  dueDate               DateTime
+  paidDate              DateTime?
+  status                PaymentStatus        @default(PENDING)
+  method                String?
+  reference             String?
+  mpesaReceiptNumber    String?
+  mpesaPhoneNumber      String?
+  invoiceId             String?
+  invoice               Invoice?             @relation(fields: [invoiceId], references: [id])
+  reconciliationStatus  ReconciliationStatus @default(PENDING)
+  mpesaTransaction      MpesaTransaction?
+  notifications         Notification[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+}
+
+model MaintenanceRequest {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unitId      String
+  unit        Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  priority    Priority          @default(MEDIUM)
+  status      MaintenanceStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  resolvedAt  DateTime?
+  updatedAt   DateTime          @updatedAt
+}
+
+model MpesaConfig {
+  id             String           @id @default(cuid())
+  propertyId     String           @unique
+  property       Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  consumerKey    String
+  consumerSecret String
+  shortcode      String
+  passkey        String
+  environment    MpesaEnvironment @default(SANDBOX)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  propertyId      String
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Float         @default(0)
+  totalAmount     Float         @default(0)
+  amountPaid      Float         @default(0)
+  isAutoGenerated Boolean       @default(false)
+  notes           String?
+  items           InvoiceItem[]
+  payments        Payment[]
+  notifications   Notification[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String          @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float           @default(1)
+  unitPrice   Float
+  amount      Float
+  itemType    InvoiceItemType @default(OTHER)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model MpesaTransaction {
+  id               String   @id @default(cuid())
+  transId          String   @unique
+  transAmount      Float
+  businessShortCode String
+  billRefNumber    String?
+  msisdn           String
+  firstName        String?
+  lastName         String?
+  transTime        String
+  paymentId        String?  @unique
+  payment          Payment? @relation(fields: [paymentId], references: [id])
+  isReconciled     Boolean  @default(false)
+  rawCallbackData  Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  paymentId String?
+  payment   Payment?         @relation(fields: [paymentId], references: [id])
+  invoiceId String?
+  invoice   Invoice?         @relation(fields: [invoiceId], references: [id])
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
