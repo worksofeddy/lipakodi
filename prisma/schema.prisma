@@ -86,7 +86,20 @@ enum NotificationType {
   PAYMENT_RECEIVED
   INVOICE_SENT
   PAYMENT_OVERDUE
+  SMS_REMINDER
   SYSTEM
+}
+
+enum SmsStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum SmsType {
+  REMINDER_BEFORE_DUE
+  REMINDER_ON_DUE
+  REMINDER_OVERDUE
 }
 
 model User {
@@ -191,6 +204,7 @@ model Tenant {
   payments    Payment[]
   invoices    Invoice[]
   maintenanceRequests MaintenanceRequest[]
+  smsLogs     SmsLog[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -262,6 +276,7 @@ model Invoice {
   items           InvoiceItem[]
   payments        Payment[]
   notifications   Notification[]
+  smsLogs         SmsLog[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
@@ -311,4 +326,20 @@ model Notification {
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
+}
+
+model SmsLog {
+  id           String    @id @default(cuid())
+  phoneNumber  String
+  message      String
+  status       SmsStatus @default(PENDING)
+  provider     String    @default("africastalking")
+  invoiceId    String?
+  invoice      Invoice?  @relation(fields: [invoiceId], references: [id])
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
+  type         SmsType
+  externalId   String?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
 }
