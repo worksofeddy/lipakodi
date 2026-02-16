@@ -41,7 +41,7 @@ export function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void
 
         <div className="flex items-center md:hidden">
           <Home className="h-6 w-6 text-primary mr-2" />
-          <span className="font-bold text-primary">RentWise</span>
+          <span className="font-bold text-primary">LipaKodi</span>
         </div>
 
         <div className="ml-auto flex items-center gap-4">

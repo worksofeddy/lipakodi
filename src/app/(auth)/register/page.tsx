@@ -63,7 +63,7 @@ export default function RegisterPage() {
             <Home className="h-10 w-10 text-primary" />
           </div>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
-          <CardDescription>Get started with RentWise</CardDescription>
+          <CardDescription>Get started with LipaKodi</CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">

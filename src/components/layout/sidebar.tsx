@@ -39,7 +39,7 @@ export function Sidebar({ role }: { role: string }) {
       <div className="flex flex-col flex-grow border-r bg-white pt-5 pb-4 overflow-y-auto">
         <div className="flex items-center flex-shrink-0 px-4 mb-6">
           <Home className="h-8 w-8 text-primary mr-2" />
-          <span className="text-xl font-bold text-primary">RentWise</span>
+          <span className="text-xl font-bold text-primary">LipaKodi</span>
         </div>
         <nav className="flex-1 px-2 space-y-1">
           {links.map((link) => {

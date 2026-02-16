@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "RentWise - Rental Management",
+  title: "LipaKodi - Rental Management",
   description: "Multi-landlord residential rental management platform",
 };
 
