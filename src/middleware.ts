@@ -20,6 +20,11 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Cron endpoints use their own secret-based auth
+  if (pathname.startsWith("/api/cron")) {
+    return NextResponse.next();
+  }
+
   if (!isLoggedIn && !pathname.startsWith("/api/auth")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
