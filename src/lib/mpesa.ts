@@ -76,7 +76,7 @@ export async function registerC2BUrls(
 export async function stkPush(
   config: MpesaConfig,
   params: StkPushParams
-): Promise<{ CheckoutRequestID: string; ResponseCode: string }> {
+): Promise<{ CheckoutRequestID: string; ResponseCode: string; ResponseDescription?: string }> {
   const token = await getAccessToken(config);
   const baseUrl = getBaseUrl(config.environment);
   const timestamp = new Date()

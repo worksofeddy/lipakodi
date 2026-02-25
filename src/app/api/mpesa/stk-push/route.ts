@@ -66,6 +66,14 @@ export async function POST(request: Request) {
       callbackUrl: `${baseUrl}/api/payments/stk-callback`,
     });
 
+    if (result.ResponseCode !== "0") {
+      console.error("STK Push rejected by Safaricom:", result.ResponseDescription);
+      return NextResponse.json(
+        { error: result.ResponseDescription || "M-Pesa request failed" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       checkoutRequestId: result.CheckoutRequestID,

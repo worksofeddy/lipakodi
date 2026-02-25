@@ -7,6 +7,11 @@ export async function POST(request: Request) {
     const callbackData = body.Body?.stkCallback;
 
     if (callbackData) {
+      if (callbackData.ResultCode !== 0) {
+        console.error(
+          `STK callback failed: ResultCode=${callbackData.ResultCode}, ResultDesc="${callbackData.ResultDesc}", CheckoutRequestID=${callbackData.CheckoutRequestID}`
+        );
+      }
       await reconcileStkCallback(callbackData);
     }
 

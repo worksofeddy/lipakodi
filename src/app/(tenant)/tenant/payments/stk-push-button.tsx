@@ -33,6 +33,12 @@ export function StkPushButton({
       return;
     }
 
+    const kenyanPhoneRegex = /^(?:\+?254|0)[17]\d{8}$/;
+    if (!kenyanPhoneRegex.test(phone.replace(/\s/g, ""))) {
+      setMessage("Enter a valid Kenyan phone number (e.g. 0712345678 or 254712345678)");
+      return;
+    }
+
     if (!payAmount || payAmount <= 0) {
       setMessage("Please enter a valid amount");
       return;
