@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { StkPushButton } from "./stk-push-button";
+import { DownloadReceiptButton } from "./download-receipt-button";
+import { ExportCsvButton } from "./export-csv-button";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   DRAFT: "secondary",
@@ -30,6 +32,7 @@ export default async function TenantPaymentsPage() {
   const tenant = await prisma.tenant.findFirst({
     where: { userId: session.user.id },
     include: {
+      user: { select: { name: true } },
       unit: { include: { property: { include: { mpesaConfig: true } } } },
       invoices: {
         include: { items: true, payments: true },
@@ -123,13 +126,39 @@ export default async function TenantPaymentsPage() {
                       </span>
                     </div>
                   </div>
-                  {mpesaConfig && outstanding > 0 && (
-                    <StkPushButton
-                      invoiceId={invoice.id}
-                      amount={outstanding}
-                      phoneNumber={tenant?.phoneNumber || ""}
+                  <div className="flex gap-2">
+                    {mpesaConfig && outstanding > 0 && (
+                      <StkPushButton
+                        invoiceId={invoice.id}
+                        amount={outstanding}
+                        phoneNumber={tenant?.phoneNumber || ""}
+                      />
+                    )}
+                    <DownloadReceiptButton
+                      data={{
+                        invoiceNumber: invoice.invoiceNumber,
+                        issueDate: formatDate(invoice.issueDate),
+                        dueDate: formatDate(invoice.dueDate),
+                        status: invoice.status,
+                        totalAmount: invoice.totalAmount,
+                        amountPaid: invoice.amountPaid,
+                        items: invoice.items.map((item) => ({
+                          description: item.description,
+                          quantity: item.quantity,
+                          unitPrice: item.unitPrice,
+                          amount: item.amount,
+                        })),
+                        tenantName: tenant?.user?.name || "Tenant",
+                        propertyName: tenant?.unit.property.name || "",
+                        unitNumber: tenant?.unit.unitNumber || "",
+                        mpesaReceiptNumber:
+                          invoice.payments?.[0]?.mpesaReceiptNumber || undefined,
+                        paidDate: invoice.payments?.[0]?.paidDate
+                          ? formatDate(invoice.payments[0].paidDate)
+                          : undefined,
+                      }}
                     />
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -138,8 +167,21 @@ export default async function TenantPaymentsPage() {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Payment History</CardTitle>
+          {payments.length > 0 && (
+            <ExportCsvButton
+              payments={payments.map((p) => ({
+                date: p.paidDate
+                  ? formatDate(p.paidDate)
+                  : formatDate(p.dueDate),
+                amount: p.amount,
+                status: p.status,
+                method: p.method || "N/A",
+                reference: p.mpesaReceiptNumber || p.reference || "N/A",
+              }))}
+            />
+          )}
         </CardHeader>
         <CardContent>
           {payments.length === 0 ? (

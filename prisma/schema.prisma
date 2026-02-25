@@ -102,6 +102,16 @@ enum SmsType {
   REMINDER_OVERDUE
 }
 
+enum LateFeeType {
+  PERCENTAGE
+  FIXED
+}
+
+enum NotificationChannel {
+  SMS
+  WHATSAPP
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -170,6 +180,12 @@ model Property {
   landlordId String
   landlord   User         @relation(fields: [landlordId], references: [id], onDelete: Cascade)
   mpesaConfig MpesaConfig?
+  lateFeeType      LateFeeType?
+  lateFeeAmount    Float?
+  lateFeeGraceDays Int          @default(0)
+  lateFeeEscalationDays Int?
+  lateFeeEscalationMultiplier Float?
+  onboardingTokens OnboardingToken[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
@@ -186,6 +202,7 @@ model Unit {
   property      Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenant        Tenant?
   maintenanceRequests MaintenanceRequest[]
+  onboardingTokens OnboardingToken[]
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 }
@@ -199,8 +216,11 @@ model Tenant {
   leaseStart  DateTime
   leaseEnd    DateTime
   rentAmount  Float
-  phoneNumber String?
-  status      TenantStatus @default(ACTIVE)
+  phoneNumber       String?
+  channelPreference NotificationChannel @default(SMS)
+  lateFeeExempt     Boolean     @default(false)
+  lateFeeExemptReason String?
+  status            TenantStatus @default(ACTIVE)
   payments    Payment[]
   invoices    Invoice[]
   maintenanceRequests MaintenanceRequest[]
@@ -290,6 +310,9 @@ model InvoiceItem {
   unitPrice   Float
   amount      Float
   itemType    InvoiceItemType @default(OTHER)
+  waivedAt    DateTime?
+  waivedBy    String?
+  waiverReason String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -341,5 +364,19 @@ model SmsLog {
   type         SmsType
   externalId   String?
   errorMessage String?
+  createdAt    DateTime  @default(now())
+}
+
+model OnboardingToken {
+  id           String    @id @default(cuid())
+  token        String    @unique
+  unitId       String
+  unit         Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  propertyId   String
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  used         Boolean   @default(false)
+  usedAt       DateTime?
+  usedByUserId String?
   createdAt    DateTime  @default(now())
 }

@@ -7,10 +7,13 @@ const updateTenantSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phoneNumber: z.string().optional(),
+  channelPreference: z.enum(["SMS", "WHATSAPP"]).optional(),
   rentAmount: z.number().min(0).optional(),
   leaseStart: z.string().optional(),
   leaseEnd: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  lateFeeExempt: z.boolean().optional(),
+  lateFeeExemptReason: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -84,10 +87,13 @@ export async function PATCH(
         where: { id: params.id },
         data: {
           ...(data.phoneNumber !== undefined && { phoneNumber: data.phoneNumber }),
+          ...(data.channelPreference && { channelPreference: data.channelPreference }),
           ...(data.rentAmount !== undefined && { rentAmount: data.rentAmount }),
           ...(data.leaseStart && { leaseStart: new Date(data.leaseStart) }),
           ...(data.leaseEnd && { leaseEnd: new Date(data.leaseEnd) }),
           ...(data.status && { status: data.status }),
+          ...(data.lateFeeExempt !== undefined && { lateFeeExempt: data.lateFeeExempt }),
+          ...(data.lateFeeExemptReason !== undefined && { lateFeeExemptReason: data.lateFeeExemptReason }),
         },
       });
     });

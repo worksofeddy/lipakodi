@@ -12,6 +12,8 @@ import {
   LayoutDashboard,
   DoorOpen,
   FileText,
+  BarChart3,
+  Clock,
 } from "lucide-react";
 
 const landlordLinks = [
@@ -22,6 +24,8 @@ const landlordLinks = [
   { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/maintenance", label: "Maintenance", icon: Wrench },
+  { href: "/late-fees", label: "Late Fees", icon: Clock },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 const tenantLinks = [

@@ -25,10 +25,13 @@ interface EditTenantFormProps {
   tenant: {
     id: string;
     phoneNumber: string | null;
+    channelPreference: string;
     rentAmount: number;
     leaseStart: string;
     leaseEnd: string;
     status: string;
+    lateFeeExempt: boolean;
+    lateFeeExemptReason: string | null;
     user: {
       name: string | null;
       email: string;
@@ -42,6 +45,7 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lateFeeExempt, setLateFeeExempt] = useState(tenant.lateFeeExempt);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,10 +61,15 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
         name: formData.get("name"),
         email: formData.get("email"),
         phoneNumber: formData.get("phoneNumber"),
+        channelPreference: formData.get("channelPreference"),
         rentAmount: Number(formData.get("rentAmount")),
         leaseStart: formData.get("leaseStart"),
         leaseEnd: formData.get("leaseEnd"),
         status: formData.get("status"),
+        lateFeeExempt,
+        lateFeeExemptReason: lateFeeExempt
+          ? (formData.get("lateFeeExemptReason") as string) || null
+          : null,
       }),
     });
 
@@ -123,6 +132,18 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="edit-channel">Notification Channel</Label>
+            <Select name="channelPreference" defaultValue={tenant.channelPreference || "SMS"}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SMS">SMS</SelectItem>
+                <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="edit-rent">Monthly Rent (KES)</Label>
             <Input
               id="edit-rent"
@@ -167,6 +188,31 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-lateFeeExempt"
+                checked={lateFeeExempt}
+                onChange={(e) => setLateFeeExempt(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="edit-lateFeeExempt">
+                Exempt from late fees
+              </Label>
+            </div>
+            {lateFeeExempt && (
+              <div className="space-y-2 pl-6">
+                <Label htmlFor="edit-lateFeeExemptReason">Reason</Label>
+                <Input
+                  id="edit-lateFeeExemptReason"
+                  name="lateFeeExemptReason"
+                  defaultValue={tenant.lateFeeExemptReason || ""}
+                  placeholder="e.g. Special arrangement"
+                />
+              </div>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Saving..." : "Save Changes"}

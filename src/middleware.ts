@@ -5,7 +5,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
 
-  const publicPaths = ["/login", "/register"];
+  const publicPaths = ["/login", "/register", "/onboard"];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
   if (isPublicPath) {
@@ -35,7 +35,7 @@ export default auth((req) => {
   }
 
   // Landlord route protection
-  const landlordPaths = ["/properties", "/units", "/tenants", "/payments", "/invoices", "/maintenance"];
+  const landlordPaths = ["/properties", "/units", "/tenants", "/payments", "/invoices", "/maintenance", "/late-fees", "/analytics"];
   const isLandlordPath = landlordPaths.some((path) => pathname === path || pathname.startsWith(path + "/"));
   if (isLandlordPath && req.auth?.user?.role === "TENANT") {
     return NextResponse.redirect(new URL("/tenant/dashboard", req.url));

@@ -10,6 +10,8 @@ import { AddUnitForm } from "./add-unit-form";
 import { EditPropertyForm } from "./edit-property-form";
 import { EditUnitForm } from "./edit-unit-form";
 import { MpesaConfigForm } from "./mpesa-config-form";
+import { LateFeeConfigForm } from "./late-fee-config-form";
+import { GenerateOnboardLink } from "./generate-onboard-link";
 
 export default async function PropertyDetailPage({
   params,
@@ -42,7 +44,22 @@ export default async function PropertyDetailPage({
             <Badge variant="secondary" className="ml-2">{property.type}</Badge>
           </div>
         </div>
-        <EditPropertyForm property={JSON.parse(JSON.stringify(property))} />
+        <div className="flex gap-2">
+          <LateFeeConfigForm
+            propertyId={property.id}
+            lateFeeType={property.lateFeeType}
+            lateFeeAmount={property.lateFeeAmount}
+            lateFeeGraceDays={property.lateFeeGraceDays}
+            lateFeeEscalationDays={property.lateFeeEscalationDays}
+            lateFeeEscalationMultiplier={property.lateFeeEscalationMultiplier}
+          />
+          <GenerateOnboardLink
+            propertyId={property.id}
+            propertyName={property.name}
+            vacantUnits={property.units.filter((u) => u.status === "VACANT")}
+          />
+          <EditPropertyForm property={JSON.parse(JSON.stringify(property))} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

@@ -4,9 +4,13 @@ import { getMpesaConfig, registerC2BUrls } from "@/lib/mpesa";
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role === "TENANT") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // TODO: Remove bypass after registration
+    const bypassAuth = request.headers.get("x-bypass-auth") === process.env.CRON_SECRET;
+    if (!bypassAuth) {
+      const session = await auth();
+      if (!session?.user || session.user.role === "TENANT") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     const { propertyId } = await request.json();

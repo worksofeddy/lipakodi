@@ -8,6 +8,11 @@ const updateSchema = z.object({
   address: z.string().min(1).optional(),
   city: z.string().min(1).optional(),
   type: z.enum(["APARTMENT", "HOUSE", "CONDO"]).optional(),
+  lateFeeType: z.enum(["PERCENTAGE", "FIXED"]).nullable().optional(),
+  lateFeeAmount: z.number().min(0).nullable().optional(),
+  lateFeeGraceDays: z.number().int().min(0).optional(),
+  lateFeeEscalationDays: z.number().int().min(1).nullable().optional(),
+  lateFeeEscalationMultiplier: z.number().min(1).nullable().optional(),
 });
 
 export async function GET(

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { sendRentReminder } from "@/lib/sms";
-import { SmsType } from "@prisma/client";
+import { sendMessage } from "@/lib/messaging";
+import { normalizePhoneNumber } from "@/lib/mpesa";
+import { SmsType, NotificationChannel } from "@prisma/client";
 
 interface ReminderSummary {
   sent: number;
@@ -13,6 +14,23 @@ function getSmsType(daysUntilDue: number): SmsType | null {
   if (daysUntilDue === 0) return "REMINDER_ON_DUE";
   if (daysUntilDue < 0) return "REMINDER_OVERDUE";
   return null;
+}
+
+function formatReminderMessage(
+  name: string,
+  balance: string,
+  invoiceNumber: string,
+  dueDate: string,
+  type: SmsType
+): string {
+  switch (type) {
+    case "REMINDER_BEFORE_DUE":
+      return `Hi ${name}, your rent of KES ${balance} (Invoice ${invoiceNumber}) is due on ${dueDate}. Please pay on time to avoid penalties. - LipaKodi`;
+    case "REMINDER_ON_DUE":
+      return `Hi ${name}, your rent of KES ${balance} (Invoice ${invoiceNumber}) is due today (${dueDate}). Please make your payment. - LipaKodi`;
+    case "REMINDER_OVERDUE":
+      return `Hi ${name}, your rent of KES ${balance} (Invoice ${invoiceNumber}) was due on ${dueDate} and is now overdue. Please pay immediately. - LipaKodi`;
+  }
 }
 
 export async function processRentReminders(): Promise<ReminderSummary> {
@@ -29,7 +47,7 @@ export async function processRentReminders(): Promise<ReminderSummary> {
     include: {
       tenant: {
         include: {
-          user: { select: { name: true } },
+          user: { select: { name: true, id: true } },
         },
       },
       smsLogs: {
@@ -83,31 +101,59 @@ export async function processRentReminders(): Promise<ReminderSummary> {
       continue;
     }
 
-    const result = await sendRentReminder(
-      {
-        id: invoice.tenant.id,
-        phoneNumber: invoice.tenant.phoneNumber,
-        user: invoice.tenant.user,
-      },
-      {
-        id: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-        totalAmount: invoice.totalAmount,
-        amountPaid: invoice.amountPaid,
-        dueDate: invoice.dueDate,
-      },
+    const name = invoice.tenant.user.name || "Tenant";
+    const balance = (invoice.totalAmount - invoice.amountPaid).toLocaleString();
+    const dueDateStr = invoice.dueDate.toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    const message = formatReminderMessage(
+      name,
+      balance,
+      invoice.invoiceNumber,
+      dueDateStr,
       smsType
     );
+
+    const channel: NotificationChannel = invoice.tenant.channelPreference;
+    const result = await sendMessage(
+      invoice.tenant.phoneNumber,
+      message,
+      channel
+    );
+
+    // Determine provider string for SmsLog
+    let provider = "africastalking";
+    if (result.channel === "whatsapp") {
+      provider = "africastalking-whatsapp";
+    } else if (result.channel === "sms-fallback") {
+      provider = "africastalking"; // fell back to SMS
+    }
+
+    await prisma.smsLog.create({
+      data: {
+        phoneNumber: normalizePhoneNumber(invoice.tenant.phoneNumber),
+        message,
+        status: result.success ? "SENT" : "FAILED",
+        provider,
+        invoiceId: invoice.id,
+        tenantId: invoice.tenant.id,
+        type: smsType,
+        externalId: result.messageId || null,
+        errorMessage: result.error || null,
+      },
+    });
 
     if (result.success) {
       summary.sent++;
 
-      // Create in-app notification alongside SMS
+      // Create in-app notification alongside message
       await prisma.notification.create({
         data: {
-          userId: invoice.tenant.userId,
+          userId: invoice.tenant.user.id,
           title: "Rent Reminder Sent",
-          message: `An SMS reminder was sent for Invoice ${invoice.invoiceNumber}.`,
+          message: `A reminder was sent for Invoice ${invoice.invoiceNumber}.`,
           type: "SMS_REMINDER",
           invoiceId: invoice.id,
         },
